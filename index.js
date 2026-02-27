@@ -1,72 +1,42 @@
 const http = require('http');
 const https = require('https');
-
 const PORT = process.env.PORT || 3000;
-
 const server = http.createServer((req, res) => {
   const url = req.url;
-
-  // Health check
   if (url === '/' || url === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('OK');
     return;
   }
-
   let targetHost, targetPath;
-
   if (url.startsWith('/telegram/')) {
     targetHost = 'api.telegram.org';
-    targetPath = url.substring(9); // remove '/telegram'
+    targetPath = url.substring(9);
   } else if (url.startsWith('/gemini/')) {
     targetHost = 'generativelanguage.googleapis.com';
-    targetPath = url.substring(7); // remove '/gemini'
+    targetPath = url.substring(7);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
     return;
   }
-
-  // Build headers - only forward safe headers
   const headers = {
     'host': targetHost,
     'content-type': req.headers['content-type'] || 'application/json',
     'accept': req.headers['accept'] || '*/*',
     'user-agent': 'api-proxy/1.0',
   };
-  if (req.headers['content-length']) {
-    headers['content-length'] = req.headers['content-length'];
-  }
-
-  const options = {
-    hostname: targetHost,
-    port: 443,
-    path: targetPath,
-    method: req.method,
-    headers: headers,
-  };
-
-  console.log(`[${new Date().toISOString()}] ${req.method} ${url} -> https://${targetHost}${targetPath}`);
-
-  const proxyReq = https.request(options, (proxyRes) => {
-    // Remove hop-by-hop headers
-    const respHeaders = { ...proxyRes.headers };
-    delete respHeaders['transfer-encoding'];
-    res.writeHead(proxyRes.statusCode, respHeaders);
+  if (req.headers['authorization']) headers['authorization'] = req.headers['authorization'];
+  if (req.headers['x-goog-api-key']) headers['x-goog-api-key'] = req.headers['x-goog-api-key'];
+  if (req.headers['content-length']) headers['content-length'] = req.headers['content-length'];
+  console.log(`${req.method} ${url} -> https://${targetHost}${targetPath}`);
+  const proxyReq = https.request({ hostname: targetHost, port: 443, path: targetPath, method: req.method, headers }, (proxyRes) => {
+    const h = { ...proxyRes.headers };
+    delete h['transfer-encoding'];
+    res.writeHead(proxyRes.statusCode, h);
     proxyRes.pipe(res);
   });
-
-  proxyReq.on('error', (e) => {
-    console.error(`[${new Date().toISOString()}] ERROR: ${e.message}`);
-    if (!res.headersSent) {
-      res.writeHead(502, { 'Content-Type': 'text/plain' });
-      res.end('Bad Gateway: ' + e.message);
-    }
-  });
-
+  proxyReq.on('error', (e) => { if (!res.headersSent) { res.writeHead(502); res.end('Bad Gateway'); } });
   req.pipe(proxyReq);
 });
-
-server.listen(PORT, () => {
-  console.log(`API Proxy running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log('Proxy on port ' + PORT));
