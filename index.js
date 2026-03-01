@@ -15,6 +15,9 @@ const server = http.createServer((req, res) => {
   } else if (url.startsWith('/gemini/')) {
     targetHost = 'generativelanguage.googleapis.com';
     targetPath = url.substring(7);
+  } else if (url.startsWith('/brave/')) {
+    targetHost = 'api.search.brave.com';
+    targetPath = url.substring(6);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
@@ -29,6 +32,7 @@ const server = http.createServer((req, res) => {
   if (req.headers['authorization']) headers['authorization'] = req.headers['authorization'];
   if (req.headers['x-goog-api-key']) headers['x-goog-api-key'] = req.headers['x-goog-api-key'];
   if (req.headers['content-length']) headers['content-length'] = req.headers['content-length'];
+  if (req.headers['x-subscription-token']) headers['x-subscription-token'] = req.headers['x-subscription-token'];
   console.log(`${req.method} ${url} -> https://${targetHost}${targetPath}`);
   const proxyReq = https.request({ hostname: targetHost, port: 443, path: targetPath, method: req.method, headers }, (proxyRes) => {
     const h = { ...proxyRes.headers };
