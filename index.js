@@ -18,6 +18,9 @@ const server = http.createServer((req, res) => {
   } else if (url.startsWith('/brave/')) {
     targetHost = 'api.search.brave.com';
     targetPath = url.substring(6);
+  } else if (url.startsWith('/nvidia/')) {
+    targetHost = 'integrate.api.nvidia.com';
+    targetPath = url.substring(7);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
