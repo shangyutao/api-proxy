@@ -2,12 +2,12 @@ const http = require('http');
 const https = require('https');
 const PORT = process.env.PORT || 3000;
 
-// NVIDIA 模型轮换列表（按优先级排序）
+// NVIDIA 模型轮换列表（按优先级排序，首选失败时依次尝试）
 const NVIDIA_FALLBACK_MODELS = [
   'qwen/qwen3.5-397b-a17b',
+  'minimaxai/minimax-m2.5',
+  'deepseek-ai/deepseek-v3.2',
   'qwen/qwen3.5-122b-a10b',
-  'deepseek-ai/deepseek-v3.1',
-  'meta/llama-3.3-70b-instruct',
 ];
 
 // 不健康模型记录（模型id -> 恢复时间戳）
